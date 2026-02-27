@@ -18,14 +18,18 @@ export const handleDynamicOptions = (options) => {
   const dynamicHeaders = typeof options.headers === 'function';
   const dynamicBody = typeof options.body === 'function';
 
-  if (dynamicHeaders || dynamicBody) {
-    return {
-      ...options,
-      ...dynamicHeaders && { headers: options.headers() },
-      ...dynamicBody && { body: options.body() },
-    };
+  if (!dynamicHeaders && !dynamicBody) {
+    return options;
   }
-  return options;
+
+  const resolved = { ...options };
+  if (dynamicHeaders) {
+    resolved.headers = options.headers();
+  }
+  if (dynamicBody) {
+    resolved.body = options.body();
+  }
+  return resolved;
 };
 
 export const handleDynamicHeaders = handleDynamicOptions;
