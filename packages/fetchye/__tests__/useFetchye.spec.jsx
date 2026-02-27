@@ -152,6 +152,44 @@ describe('useFetchye', () => {
           mapOptionsToKey: expect.any(Function),
         });
       });
+      it('should call fetch with the right body when passed dynamic body', async () => {
+        let fetchyeRes;
+        let dynamicValueCount = 0;
+        global.fetch = jest.fn(async () => ({
+          ...defaultPayload,
+        }));
+        render(
+          <AFetchyeProvider cache={cache}>
+            {React.createElement(() => {
+              fetchyeRes = useFetchye('http://example.com', {
+                method: 'POST',
+                body: () => JSON.stringify({
+                  dynamicBody: `dynamic value ${dynamicValueCount}`,
+                }),
+                mapOptionsToKey: (options) => ({
+                  ...options,
+                  body: null,
+                }),
+              });
+              return null;
+            })}
+          </AFetchyeProvider>
+        );
+        await waitFor(() => fetchyeRes.isLoading === false);
+        dynamicValueCount += 1;
+        await fetchyeRes.run();
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(global.fetch).toHaveBeenNthCalledWith(1, 'http://example.com', {
+          method: 'POST',
+          body: JSON.stringify({ dynamicBody: 'dynamic value 0' }),
+          mapOptionsToKey: expect.any(Function),
+        });
+        expect(global.fetch).toHaveBeenNthCalledWith(2, 'http://example.com', {
+          method: 'POST',
+          body: JSON.stringify({ dynamicBody: 'dynamic value 1' }),
+          mapOptionsToKey: expect.any(Function),
+        });
+      });
       it('should return data success state when response is empty (204 no content)', async () => {
         let fetchyeRes;
         global.fetch = jest.fn(async () => ({

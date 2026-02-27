@@ -14,12 +14,18 @@
  * permissions and limitations under the License.
  */
 
-export const handleDynamicHeaders = (options) => {
-  if (typeof options.headers === 'function') {
+export const handleDynamicOptions = (options) => {
+  const dynamicHeaders = typeof options.headers === 'function';
+  const dynamicBody = typeof options.body === 'function';
+
+  if (dynamicHeaders || dynamicBody) {
     return {
       ...options,
-      headers: options.headers(),
+      ...dynamicHeaders && { headers: options.headers() },
+      ...dynamicBody && { body: options.body() },
     };
   }
   return options;
 };
+
+export const handleDynamicHeaders = handleDynamicOptions;

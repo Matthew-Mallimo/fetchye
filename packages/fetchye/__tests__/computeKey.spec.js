@@ -97,6 +97,22 @@ describe('computeKey', () => {
     expect(mappedHash).toBe(unmappedHash);
   });
 
+  it('should call dynamic body function and return a different hash when dynamic body changes', () => {
+    const key = 'abcd';
+    let bodyCount = 0;
+    const options = {
+      method: 'POST',
+      body: () => {
+        bodyCount += 1;
+        return JSON.stringify({ dynamicBody: bodyCount });
+      },
+    };
+    const { hash: mappedHash1 } = computeKey(key, options);
+    const { hash: mappedHash2 } = computeKey(key, options);
+    expect(mappedHash1).not.toBe(mappedHash2);
+    expect(bodyCount).toBe(2);
+  });
+
   it('should call dynamic headers function and return a different hash when dynamic headers change', () => {
     const key = 'abcd';
     let headerCount = 0;

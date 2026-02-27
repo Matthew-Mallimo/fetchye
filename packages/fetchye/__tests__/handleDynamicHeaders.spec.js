@@ -14,10 +14,14 @@
  * permissions and limitations under the License.
  */
 
-import { handleDynamicHeaders } from '../src/handleDynamicHeaders';
+import { handleDynamicHeaders, handleDynamicOptions } from '../src/handleDynamicHeaders';
 
-describe('handleDynamicHeaders', () => {
-  it('should pass back the exact object passed if the headers field is not a function', () => {
+describe('handleDynamicOptions', () => {
+  it('should export handleDynamicHeaders as an alias for backwards compatibility', () => {
+    expect(handleDynamicHeaders).toBe(handleDynamicOptions);
+  });
+
+  it('should pass back the exact object passed if neither headers nor body is a function', () => {
     const testValues = [
       {},
       { body: 'mockBody' },
@@ -31,7 +35,7 @@ describe('handleDynamicHeaders', () => {
     ];
 
     testValues.forEach((testVal) => {
-      expect(handleDynamicHeaders(testVal)).toBe(testVal);
+      expect(handleDynamicOptions(testVal)).toBe(testVal);
     });
   });
 
@@ -51,12 +55,12 @@ describe('handleDynamicHeaders', () => {
         })),
       };
 
-      const result = handleDynamicHeaders(valWithDynamicHeader);
+      const result = handleDynamicOptions(valWithDynamicHeader);
 
       // a new object has been created
       expect(result).not.toBe(valWithDynamicHeader);
 
-      // the headers are no-loger a function
+      // the headers are no longer a function
       expect(result.headers).toEqual({
         dynamicHeader: 'dynamicHeaderValue',
       });
@@ -66,5 +70,47 @@ describe('handleDynamicHeaders', () => {
         expect(result[testValKey]).toBe(testVal[testValKey]);
       });
     });
+  });
+
+  it('should resolve body when it is a function', () => {
+    const options = {
+      headers: { staticHeader: 'staticHeaderValue' },
+      body: jest.fn(() => JSON.stringify({ dynamicData: true })),
+    };
+
+    const result = handleDynamicOptions(options);
+
+    expect(result).not.toBe(options);
+    expect(options.body).toHaveBeenCalledTimes(1);
+    expect(result.body).toBe(JSON.stringify({ dynamicData: true }));
+    expect(result.headers).toBe(options.headers);
+  });
+
+  it('should pass through body unchanged when it is not a function', () => {
+    const options = {
+      body: JSON.stringify({ staticData: true }),
+    };
+
+    const result = handleDynamicOptions(options);
+
+    expect(result).toBe(options);
+    expect(result.body).toBe(JSON.stringify({ staticData: true }));
+  });
+
+  it('should resolve both headers and body when both are functions', () => {
+    const options = {
+      method: 'POST',
+      headers: jest.fn(() => ({ 'Content-Type': 'application/json' })),
+      body: jest.fn(() => JSON.stringify({ dynamicData: true })),
+    };
+
+    const result = handleDynamicOptions(options);
+
+    expect(result).not.toBe(options);
+    expect(options.headers).toHaveBeenCalledTimes(1);
+    expect(options.body).toHaveBeenCalledTimes(1);
+    expect(result.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(result.body).toBe(JSON.stringify({ dynamicData: true }));
+    expect(result.method).toBe('POST');
   });
 });
